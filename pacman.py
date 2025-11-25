@@ -9,7 +9,7 @@ import sys
 import time
 from collections import deque
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import pygame
 
@@ -76,6 +76,7 @@ MAZE_LAYOUT = [
 # Some rows contain spaces for tunnel entrances and ghost house
 # We'll treat any non-# as walkable except spaces outside the grid; we keep grid exact length.
 
+
 @dataclass
 class Vec2:
     x: int
@@ -89,6 +90,7 @@ class Vec2:
 
     def to_tuple(self) -> Tuple[int, int]:
         return (self.x, self.y)
+
 
 # Directions
 UP = Vec2(0, -1)
@@ -122,15 +124,15 @@ class Maze:
         for y, row in enumerate(self.layout):
             for x, ch in enumerate(row):
                 pos = Vec2(x, y)
-                if ch == '#':
+                if ch == "#":
                     self.walls.add(pos.to_tuple())
-                elif ch == '.':
+                elif ch == ".":
                     self.pellets.add(pos.to_tuple())
-                elif ch == 'o':
+                elif ch == "o":
                     self.power_pellets.add(pos.to_tuple())
-                elif ch == 'P':
+                elif ch == "P":
                     self.player_start = Vec2(x, y)
-                elif ch == 'G':
+                elif ch == "G":
                     self.ghost_spawns.append(Vec2(x, y))
         # Ensure spawns exist
         if not self.ghost_spawns:
@@ -164,17 +166,17 @@ class Maze:
     def draw(self, surface: pygame.Surface):
         surface.fill(BLACK)
         # Draw walls
-        for (x, y) in self.walls:
+        for x, y in self.walls:
             rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
             pygame.draw.rect(surface, NAVY, rect)
             pygame.draw.rect(surface, BLUE, rect, 2)
         # Draw pellets
-        for (x, y) in self.pellets:
+        for x, y in self.pellets:
             cx = x * TILE_SIZE + TILE_SIZE // 2
             cy = y * TILE_SIZE + TILE_SIZE // 2
             pygame.draw.circle(surface, WHITE, (cx, cy), 3)
         # Draw power pellets
-        for (x, y) in self.power_pellets:
+        for x, y in self.power_pellets:
             cx = x * TILE_SIZE + TILE_SIZE // 2
             cy = y * TILE_SIZE + TILE_SIZE // 2
             pygame.draw.circle(surface, WHITE, (cx, cy), 7, 2)
@@ -229,7 +231,9 @@ class Entity:
                 self.grid = Vec2(0, self.grid.y)
 
     def draw(self, surface: pygame.Surface, color: Tuple[int, int, int]):
-        pygame.draw.circle(surface, color, (int(self.pos[0]), int(self.pos[1])), TILE_SIZE // 2 - 2)
+        pygame.draw.circle(
+            surface, color, (int(self.pos[0]), int(self.pos[1])), TILE_SIZE // 2 - 2
+        )
 
 
 class Player(Entity):
@@ -276,7 +280,14 @@ class Player(Entity):
 
 
 class Ghost(Entity):
-    def __init__(self, maze: Maze, start_grid: Vec2, color: Tuple[int, int, int], name: str, mode: str):
+    def __init__(
+        self,
+        maze: Maze,
+        start_grid: Vec2,
+        color: Tuple[int, int, int],
+        name: str,
+        mode: str,
+    ):
         super().__init__(maze, start_grid, speed=1.8)
         self.base_speed = 1.8
         self.fright_speed = 1.2
@@ -329,7 +340,9 @@ class Ghost(Entity):
             return None
         # backtrack
         cur = goal
-        while came[cur.to_tuple()] and came[cur.to_tuple()].to_tuple() != start.to_tuple():
+        while (
+            came[cur.to_tuple()] and came[cur.to_tuple()].to_tuple() != start.to_tuple()
+        ):
             cur = came[cur.to_tuple()]
         return cur
 
@@ -347,7 +360,9 @@ class Ghost(Entity):
             if candidates:
                 # avoid reversing
                 rev = Vec2(-self.dir.x, -self.dir.y)
-                candidates = [d for d in candidates if not (d.x == rev.x and d.y == rev.y)] or candidates
+                candidates = [
+                    d for d in candidates if not (d.x == rev.x and d.y == rev.y)
+                ] or candidates
                 self.dir = random.choice(candidates)
             return
         d = Vec2(next_cell.x - self.grid.x, next_cell.y - self.grid.y)
@@ -363,7 +378,9 @@ class Ghost(Entity):
                 candidates.append(d)
         if candidates:
             rev = Vec2(-self.dir.x, -self.dir.y)
-            candidates = [d for d in candidates if not (d.x == rev.x and d.y == rev.y)] or candidates
+            candidates = [
+                d for d in candidates if not (d.x == rev.x and d.y == rev.y)
+            ] or candidates
             self.dir = random.choice(candidates)
 
     def update(self, player: Player):
@@ -377,7 +394,11 @@ class Ghost(Entity):
         if self.dead:
             # go back to house to respawn
             self.choose_dir_towards(self.respawn_point)
-            if self.at_center_of_tile() and self.grid.x == self.respawn_point.x and self.grid.y == self.respawn_point.y:
+            if (
+                self.at_center_of_tile()
+                and self.grid.x == self.respawn_point.x
+                and self.grid.y == self.respawn_point.y
+            ):
                 self.dead = False
                 self.clear_vulnerable()
         else:
@@ -389,8 +410,12 @@ class Ghost(Entity):
                     for d in DIRECTIONS:
                         n = Vec2(self.grid.x + d.x, self.grid.y + d.y)
                         if self.maze.walkable(n):
-                            dist = (n.x - player.grid.x) ** 2 + (n.y - player.grid.y) ** 2
-                            if dist > best_dist and not (d.x == -self.dir.x and d.y == -self.dir.y):
+                            dist = (n.x - player.grid.x) ** 2 + (
+                                n.y - player.grid.y
+                            ) ** 2
+                            if dist > best_dist and not (
+                                d.x == -self.dir.x and d.y == -self.dir.y
+                            ):
                                 best_dist = dist
                                 best = d
                     if best is None:
@@ -398,10 +423,10 @@ class Ghost(Entity):
                     else:
                         self.dir = best
             else:
-                if self.mode == 'chaser':
+                if self.mode == "chaser":
                     # chase player grid directly (simple)
                     self.choose_dir_towards(player.grid)
-                elif self.mode == 'random':
+                elif self.mode == "random":
                     self.choose_random_dir()
                 else:
                     self.choose_random_dir()
@@ -414,8 +439,12 @@ class Ghost(Entity):
         super().draw(surface, color)
         # eyes when vulnerable or dead
         if self.vulnerable or self.dead:
-            pygame.draw.circle(surface, WHITE, (int(self.pos[0]) - 6, int(self.pos[1]) - 3), 3)
-            pygame.draw.circle(surface, WHITE, (int(self.pos[0]) + 6, int(self.pos[1]) - 3), 3)
+            pygame.draw.circle(
+                surface, WHITE, (int(self.pos[0]) - 6, int(self.pos[1]) - 3), 3
+            )
+            pygame.draw.circle(
+                surface, WHITE, (int(self.pos[0]) + 6, int(self.pos[1]) - 3), 3
+            )
 
 
 class Game:
@@ -432,11 +461,11 @@ class Game:
         # Create two ghosts with different simple AI
         spawns = self.maze.ghost_spawns
         self.ghosts: List[Ghost] = [
-            Ghost(self.maze, spawns[0], RED, "Blinky", mode='chaser'),
-            Ghost(self.maze, spawns[1], ORANGE, "Clyde", mode='random'),
+            Ghost(self.maze, spawns[0], RED, "Blinky", mode="chaser"),
+            Ghost(self.maze, spawns[1], ORANGE, "Clyde", mode="random"),
         ]
 
-        self.state = 'playing'  # 'playing', 'win', 'gameover'
+        self.state = "playing"  # 'playing', 'win', 'gameover'
         self.level = 1
 
     def reset_positions(self):
@@ -459,21 +488,23 @@ class Game:
                 pygame.quit()
                 sys.exit(0)
             if event.type == pygame.KEYDOWN:
-                if self.state in ('win', 'gameover') and event.key == pygame.K_RETURN:
+                if self.state in ("win", "gameover") and event.key == pygame.K_RETURN:
                     # restart level
                     self.__init__()
-        if self.state == 'playing':
+        if self.state == "playing":
             self.player.handle_input()
 
     def update(self):
-        if self.state != 'playing':
+        if self.state != "playing":
             return
         self.player.update()
         # Set ghosts vulnerable when player powers up
         if self.player.is_powered():
             for g in self.ghosts:
                 if not g.dead:
-                    g.set_vulnerable(frames=max(g.frightened_timer, self.player.power_timer))
+                    g.set_vulnerable(
+                        frames=max(g.frightened_timer, self.player.power_timer)
+                    )
         for g in self.ghosts:
             g.update(self.player)
 
@@ -490,13 +521,13 @@ class Game:
                     # player loses life
                     self.player.lives -= 1
                     if self.player.lives <= 0:
-                        self.state = 'gameover'
+                        self.state = "gameover"
                     else:
                         self.reset_positions()
                     break
 
         if self.maze.pellets_remaining() == 0:
-            self.state = 'win'
+            self.state = "win"
 
     @staticmethod
     def collision(a: Entity, b: Entity) -> bool:
@@ -513,9 +544,9 @@ class Game:
         self.screen.blit(level_surf, (SCREEN_WIDTH - 100, SCREEN_HEIGHT - 20))
 
     def draw_state_overlay(self):
-        if self.state == 'win':
+        if self.state == "win":
             msg = "YOU WIN! Press Enter to Restart"
-        elif self.state == 'gameover':
+        elif self.state == "gameover":
             msg = "GAME OVER! Press Enter to Restart"
         else:
             return
